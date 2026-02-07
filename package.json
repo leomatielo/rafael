@@ -1,0 +1,9 @@
+{
+  "name": "vela-rafael",
+  "version": "1.0.0",
+  "description": "Site-meme para acender velas e tirar o azar do Rafael",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
