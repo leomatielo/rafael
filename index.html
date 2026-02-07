@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acende a vela do Rafael</title>
+    <link rel="stylesheet" href="public/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div>
+          <span class="badge">Ritual coletivo</span>
+          <h1>Acende uma vela para tirar o azar do Rafael</h1>
+          <p class="subtitle">
+            Cada vela acesa aparece para todo mundo. Escolha a duração, faça o pedido e vamos
+            iluminar esse destino.
+          </p>
+          <form class="candle-form" id="candle-form">
+            <label>
+              Duração da vela (minutos)
+              <input type="number" name="duration" min="1" max="240" value="30" required />
+            </label>
+            <button type="submit">Acender vela agora</button>
+          </form>
+          <p class="note">As velas somem automaticamente quando o tempo acaba.</p>
+        </div>
+        <div class="photo-card">
+          <img src="public/rafael.svg" alt="Foto do Rafael" />
+          <p class="photo-caption">Rafael no modo meme pedindo uma energia boa.</p>
+        </div>
+      </section>
+
+      <section class="candles">
+        <div class="section-header">
+          <h2>Velas acesas (<span id="candle-count">0</span>)</h2>
+          <span class="server-side">Atualização local</span>
+        </div>
+        <div class="candle-grid" id="candle-grid"></div>
+      </section>
+    </main>
+
+    <script>
+      const storageKey = 'vela-rafael-candles';
+      const grid = document.getElementById('candle-grid');
+      const count = document.getElementById('candle-count');
+      const form = document.getElementById('candle-form');
+
+      const loadCandles = () => {
+        try {
+          return JSON.parse(localStorage.getItem(storageKey)) ?? [];
+        } catch {
+          return [];
+        }
+      };
+
+      const saveCandles = (candles) => {
+        localStorage.setItem(storageKey, JSON.stringify(candles));
+      };
+
+      const formatRemaining = (ms) => {
+        const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}m ${seconds}s`;
+      };
+
+      const render = () => {
+        const now = Date.now();
+        const candles = loadCandles().filter((candle) => candle.expiresAt > now);
+        saveCandles(candles);
+
+        count.textContent = String(candles.length);
+        if (!candles.length) {
+          grid.innerHTML = '<p class="empty">Ainda não tem vela acesa. Seja o primeiro!</p>';
+          return;
+        }
+
+        grid.innerHTML = candles
+          .map((candle) => {
+            const remaining = formatRemaining(candle.expiresAt - now);
+            return `
+              <li class="candle-card">
+                <div class="candle">
+                  <span class="flame"></span>
+                  <span class="wax"></span>
+                </div>
+                <div>
+                  <p class="candle-title">Vela #${candle.id}</p>
+                  <p class="candle-detail">Duração escolhida: ${candle.durationMinutes} min</p>
+                  <p class="candle-detail">Tempo restante: ${remaining}</p>
+                </div>
+              </li>
+            `;
+          })
+          .join('');
+      };
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const durationMinutes = Number.parseInt(formData.get('duration'), 10);
+        const safeDuration = Number.isFinite(durationMinutes)
+          ? Math.min(Math.max(durationMinutes, 1), 240)
+          : 30;
+
+        const candles = loadCandles();
+        const now = Date.now();
+        const nextId = candles.length ? Math.max(...candles.map((c) => c.id)) + 1 : 1;
+        candles.push({
+          id: nextId,
+          durationMinutes: safeDuration,
+          expiresAt: now + safeDuration * 60 * 1000,
+        });
+        saveCandles(candles);
+        render();
+      });
+
+      render();
+      setInterval(render, 1000);
+    </script>
+  </body>
+</html>
